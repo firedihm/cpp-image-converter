@@ -16,7 +16,7 @@ bool SavePPM(const Path& file, const Image& image) {
     
     out << PPM_SIG << '\n' << image.GetWidth() << ' ' << image.GetHeight() << '\n' << PPM_MAX << '\n';
     
-    std::vector<char> buffer(w * 3);
+    std::vector<char> buffer(image.GetWidth() * 3);
     for (int y = 0; y < image.GetHeight(); ++y) {
         const Color* line = image.GetLine(y);
         for (int x = 0; x < image.GetWidth(); ++x) {
