@@ -12,7 +12,10 @@ namespace img_lib {
 
 // функция вычисления отступа по ширине
 static int GetBMPStride(int w) {
-    return 4 * ((w * 3 + 3) / 4);
+    const uint MEMORY_ALIGN = 4;
+    const uint COLOR_CHANNELS = 3; // глубина цвета: 24 бит = 3 канала
+    
+    return MEMORY_ALIGN * ((w * COLOR_CHANNELS + COLOR_CHANNELS) / MEMORY_ALIGN);
 }
 
 PACKED_STRUCT_BEGIN BitmapInfoHeader {
