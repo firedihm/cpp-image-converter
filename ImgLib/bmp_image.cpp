@@ -13,9 +13,9 @@ namespace img_lib {
 // функция вычисления отступа по ширине
 static int GetBMPStride(int w) {
     const uint MEMORY_ALIGN = 4;
-    const uint COLOR_CHANNELS = 3; // глубина цвета: 24 бит = 3 канала
+    const uint COLOUR_CHANNELS = 3; // глубина цвета: 24 бит = 3 канала
     
-    return MEMORY_ALIGN * ((w * COLOR_CHANNELS + COLOR_CHANNELS) / MEMORY_ALIGN);
+    return MEMORY_ALIGN * ((w * COLOUR_CHANNELS + COLOUR_CHANNELS) / MEMORY_ALIGN);
 }
 
 PACKED_STRUCT_BEGIN BitmapInfoHeader {
@@ -104,6 +104,9 @@ Image LoadBMP(const Path& file) {
     std::vector<char> buffer(GetBMPStride(image.GetWidth()));
     for (int y = image.GetHeight() - 1; y >= 0; --y) {
         ifs.read(buffer.data(), buffer.size());
+        if (!ifs.good()) {
+            return {};
+        }
         
         Color* line = image.GetLine(y);
         for (int x = 0; x < image.GetWidth(); ++x) {
