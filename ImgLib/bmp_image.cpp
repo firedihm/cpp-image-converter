@@ -2,6 +2,7 @@
 #include "pack_defines.h"
 
 #include <array>
+#include <cstring>
 #include <fstream>
 #include <string_view>
 
@@ -15,31 +16,41 @@ static int GetBMPStride(int w) {
 }
 
 PACKED_STRUCT_BEGIN BitmapInfoHeader {
+    BitmapInfoHeader() = default;
     BitmapInfoHeader(int width, int height)
-        : biWidth(width), biHeight(height), biSizeImage(GetBMPStride(width) * height) {}
+        : biSize(sizeof(BitmapInfoHeader)), biWidth(width), biHeight(height)
+        , biPlanes(1), biBitCount(24), biCompression(0)
+        , biSizeImage(GetBMPStride(width) * height)
+        , biXPelsPerMeter(11811), biYPelsPerMeter(11811)
+        , biClrUsed(0), biClrImportant(0x1000000) {
+    }
     
-    uint32_t biSize = sizeof(BitmapInfoHeader);
+    uint32_t biSize;
     int32_t biWidth;
     int32_t biHeight;
-    uint16_t biPlanes = 1;
-    uint16_t biBitCount = 24;
-    uint32_t biCompression = 0;
+    uint16_t biPlanes;
+    uint16_t biBitCount;
+    uint32_t biCompression;
     uint32_t biSizeImage;
-    int32_t biXPelsPerMeter = 11811;
-    int32_t biYPelsPerMeter = 11811;
-    int32_t biClrUsed = 0;
-    int32_t biClrImportant = 0x1000000;
+    int32_t biXPelsPerMeter;
+    int32_t biYPelsPerMeter;
+    int32_t biClrUsed;
+    int32_t biClrImportant;
 }
 PACKED_STRUCT_END
 
 PACKED_STRUCT_BEGIN BitmapFileHeader {
+    BitmapFileHeader() = default;
     BitmapFileHeader(int width, int height)
-        : bfSize(sizeof(BitmapFileHeader) + sizeof(BitmapInfoHeader) + GetBMPStride(width) * height) {}
+        : bfType{'B', 'M'}
+        , bfSize(sizeof(BitmapFileHeader) + sizeof(BitmapInfoHeader) + GetBMPStride(width) * height)
+        , bfReserved(0), bfOffBits(sizeof(BitmapFileHeader) + sizeof(BitmapInfoHeader)) {
+    }
     
-    char bfType[2] = {'B', 'M'};
+    char bfType[2];
     uint32_t bfSize;
-    uint32_t bfReserved = 0; // uint16_t bfReserved1, bfReserved2 у майкрософт :)
-    uint32_t bfOffBits = sizeof(BitmapFileHeader) + sizeof(BitmapInfoHeader);
+    uint32_t bfReserved; // uint16_t bfReserved1, bfReserved2 у майкрософт :)
+    uint32_t bfOffBits;
 }
 PACKED_STRUCT_END
 
@@ -69,20 +80,26 @@ bool SaveBMP(const Path& file, const Image& image) {
     return ofs.good();
 }
 
+const char BMP_SIGNATURE[2] = {'B', 'M'};
+
 Image LoadBMP(const Path& file) {
     ifstream ifs(file, ios::binary);
     
-    ifs.ignore(18); // ->biWidth
+    BitmapFileHeader file_header;
+    ifs.read(reinterpret_cast<char*>(&file_header), sizeof(file_header));
+    if (!ifs.good() || !std::strcmp(file_header.bfType, BMP_SIGNATURE)) {
+        return {};
+    }
     
-    int w, h;
-    ifs.read(reinterpret_cast<char*>(&w), sizeof(w));
-    ifs.read(reinterpret_cast<char*>(&h), sizeof(h));
+    BitmapInfoHeader info_header;
+    ifs.read(reinterpret_cast<char*>(&info_header), sizeof(info_header));
+    if (!ifs.good()) {
+        return {};
+    }
     
-    Image image(w, h, Color::Black());
-    std::vector<char> buffer(GetBMPStride(w));
+    Image image(info_header.biWidth, info_header.biHeight, Color::Black());
     
-    ifs.ignore(28); // ->data
-    
+    std::vector<char> buffer(GetBMPStride(image.GetWidth()));
     for (int y = image.GetHeight() - 1; y >= 0; --y) {
         ifs.read(buffer.data(), buffer.size());
         
