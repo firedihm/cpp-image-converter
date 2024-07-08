@@ -80,9 +80,8 @@ bool SaveBMP(const Path& file, const Image& image) {
     return ofs.good();
 }
 
-const char BMP_SIGNATURE[2] = {'B', 'M'};
-
 Image LoadBMP(const Path& file) {
+    const char BMP_SIGNATURE[2] = {'B', 'M'};
     ifstream ifs(file, ios::binary);
     
     BitmapFileHeader file_header;
